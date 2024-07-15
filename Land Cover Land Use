@@ -1,0 +1,32 @@
+Map.addLayer(table)
+
+var image = ee.Algorithms.Landsat.simpleComposite({
+  collection: imageCollection.filterDate('2022-01-01','2022-12-31'),
+  asFloat:true
+});
+
+var trueColorVis ={min:0, max:0.3, bands:['B4','B3','B2']};
+Map.addLayer(image.clip(table),trueColorVis, 'composite');
+
+var label = "Class";
+var bands = ['B1','B2','B3','B4','B5','B7'];
+var input = image.select(bands);
+
+//Water; 1 =urban; 2= crop; 3= forest; 4= barrenland; 
+var training = Urban.merge(Crop).merge(Water).merge(Forest).merge(Barrenland);
+var trainImage = input.sampleRegions({
+  collection: training,
+  properties: [label],
+  scale: 30
+  
+});
+
+
+var trainingData = trainImage.randomColumn();
+var trainSet = trainingData.filter(ee.Filter.lessThan('random',0.8));
+var testSet = trainingData.filter(ee.Filter.greaterThanOrEquals('random',0.8));
+var classifier = ee.Classifier.smileCart().train(trainSet, label, bands);
+var classified = input.classify(classifier);
+
+var landcoverPaletter = ['blue','red','green','yellow','grey',];
+Map.addLayer(classified.clip(table),{palette:landcoverPaletter, min:0, max:4},'classification');
