@@ -1,0 +1,6 @@
+Map.addLayer(table)
+var slope = ee.Terrain.slope(srtm);
+var slopevis = { min:0, max:35, palette:['green','yellow','red']};
+
+Map.addLayer(srtm.clip(table), {min:0 , max:4000}, 'DEM');
+Map.addLayer(slope.clip(table),slopevis, 'slope');
